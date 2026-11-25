@@ -256,8 +256,18 @@ function renderResumen() {
   $('#total-ingresos').textContent = eur.format(ingresos);
   $('#total-gastos').textContent = eur.format(gastos);
   const bal = $('#total-balance');
-  bal.textContent = eur.format(balance);
-  bal.className = 'tarjeta__valor ' + (balance >= 0 ? 'positivo' : 'negativo');
+  bal.textContent = (balance > 0 ? '+' : balance < 0 ? '−' : '') + eur.format(Math.abs(balance));
+  bal.className = 'balance__cifra ' + (balance > 0 ? 'positivo' : balance < 0 ? 'negativo' : '');
+
+  // Barra: qué parte de lo que entra se va en gastos
+  const pct = ingresos ? (gastos / ingresos) * 100 : (gastos ? 100 : 0);
+  $('#balance-gastado').style.width = `${Math.min(100, pct)}%`;
+  $('#balance-barra').classList.toggle('balance__barra--pasado', pct > 100);
+  $('#balance-nota').textContent = !ingresos && !gastos
+    ? 'Sin movimientos este mes'
+    : !ingresos ? 'Aún no hay ingresos este mes'
+    : pct > 100 ? `Has gastado un ${Math.round(pct - 100)} % más de lo que ha entrado`
+    : `Has gastado el ${Math.round(pct)} % de lo que ha entrado`;
 
   // Gastos por categoría
   const porCat = new Map();
@@ -990,3 +1000,29 @@ $('#seg-quitar').addEventListener('click', () => {
   renderSeguridad();
   toast('Bloqueo quitado');
 });
+
+// ---------- Tema claro / oscuro ----------
+const CLAVE_TEMA = 'gastos.tema';
+const mqOscuro = matchMedia('(prefers-color-scheme: dark)');
+const temaGuardado = () => { try { return localStorage.getItem(CLAVE_TEMA) || 'auto'; } catch { return 'auto'; } };
+
+function aplicarTema() {
+  const t = temaGuardado();
+  const oscuro = t === 'dark' || (t === 'auto' && mqOscuro.matches);
+  document.documentElement.dataset.tema = oscuro ? 'dark' : 'light';
+  $('#meta-tema').content = oscuro ? '#0E121B' : '#F3F4F7';
+  $('#btn-tema use').setAttribute('href', oscuro ? '#i-sol' : '#i-luna');
+  $$('#selector-tema input').forEach((r) => { r.checked = r.value === t; });
+}
+
+function ponerTema(t) {
+  try { localStorage.setItem(CLAVE_TEMA, t); } catch { /* sin almacenamiento */ }
+  aplicarTema();
+}
+
+$('#btn-tema').addEventListener('click', () => {
+  ponerTema(document.documentElement.dataset.tema === 'dark' ? 'light' : 'dark');
+});
+$('#selector-tema').addEventListener('change', (e) => ponerTema(e.target.value));
+mqOscuro.addEventListener('change', aplicarTema);
+aplicarTema();

@@ -4,7 +4,7 @@
 // versión (adiós a la caché vieja) y sin conexión abre la guardada.
 // Las llamadas a Supabase (tus datos) nunca se cachean.
 // =========================================================
-const CACHE = 'gastos-v2';
+const CACHE = 'gastos-v3';
 const APP = [
   './',
   './index.html',
@@ -41,9 +41,10 @@ self.addEventListener('fetch', (e) => {
   // Datos y login de Supabase: siempre directo a la red
   if (url.hostname.endsWith('supabase.co')) return;
 
-  // Solo la propia app y la librería de Supabase (esm.sh)
+  // Solo la propia app, la librería de Supabase (esm.sh) y las fuentes
   const propio = url.origin === self.location.origin;
-  if (!propio && url.hostname !== 'esm.sh') return;
+  const externo = ['esm.sh', 'fonts.googleapis.com', 'fonts.gstatic.com'].includes(url.hostname);
+  if (!propio && !externo) return;
 
   e.respondWith((async () => {
     const cache = await caches.open(CACHE);

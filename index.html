@@ -3,8 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f4f6f8" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#F3F4F7" id="meta-tema">
+  <meta name="color-scheme" content="light dark">
+  <script>
+    // Aplica el tema guardado antes de pintar (evita el parpadeo)
+    (function () {
+      var t = 'auto';
+      try { t = localStorage.getItem('gastos.tema') || 'auto'; } catch (e) {}
+      var oscuro = t === 'dark' || (t === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.dataset.tema = oscuro ? 'dark' : 'light';
+      document.getElementById('meta-tema').content = oscuro ? '#0E121B' : '#F3F4F7';
+    })();
+  </script>
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Gastos">
@@ -15,16 +25,47 @@
   <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <!-- Sube el número de versión (?v=) cada vez que cambies los archivos para evitar la caché -->
-  <link rel="stylesheet" href="styles.css?v=6">
-  <script type="module" src="app.js?v=6"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="styles.css?v=7">
+  <script type="module" src="app.js?v=7"></script>
 </head>
 <body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-mes" viewBox="0 0 24 24"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></symbol>
+      <symbol id="i-calendario" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></symbol>
+      <symbol id="i-graficos" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/></symbol>
+      <symbol id="i-objetivos" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+      <symbol id="i-mas" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+      <symbol id="i-izq" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+      <symbol id="i-der" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+      <symbol id="i-sol" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
+      <symbol id="i-luna" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+      <symbol id="i-auto" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+      <symbol id="i-fijos" viewBox="0 0 24 24"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></symbol>
+      <symbol id="i-categorias" viewBox="0 0 24 24"><path d="M12.59 2.59A2 2 0 0 0 11.17 2H4a2 2 0 0 0-2 2v7.17a2 2 0 0 0 .59 1.42l8.7 8.7a2.43 2.43 0 0 0 3.42 0l6.58-6.58a2.43 2.43 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1"/></symbol>
+      <symbol id="i-candado" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+      <symbol id="i-salir" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></symbol>
+      <symbol id="i-descargar" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/></symbol>
+      <symbol id="i-entra" viewBox="0 0 24 24"><path d="M17 7 7 17M17 17H7V7"/></symbol>
+      <symbol id="i-sale" viewBox="0 0 24 24"><path d="M7 7h10v10M7 17 17 7"/></symbol>
+      <symbol id="i-huella" viewBox="0 0 24 24"><path d="M2 12C2 6.5 6.5 2 12 2a10 10 0 0 1 8 4"/><path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M8.65 22c.21-.66.45-1.32.57-2"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M2 16h.01"/><path d="M21.8 16c.2-2 .13-5.35 0-6"/><path d="M9 6.8a6 6 0 0 1 9 5.2c0 .47 0 1.17-.02 2"/></symbol>
+      <symbol id="i-borrar" viewBox="0 0 24 24"><path d="M10 5a2 2 0 0 0-1.34.52l-6.33 5.74a1 1 0 0 0 0 1.48l6.33 5.74A2 2 0 0 0 10 19h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/><path d="m12 9 6 6M18 9l-6 6"/></symbol>
+      <symbol id="i-pin" viewBox="0 0 24 24"><path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/></symbol>
+      <symbol id="i-reloj" viewBox="0 0 24 24"><path d="M10 2h4M12 14l3-3"/><circle cx="12" cy="14" r="8"/></symbol>
+      <symbol id="i-tema" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 0 0 20z" fill="currentColor"/></symbol>
+    </defs>
+  </svg>
 
   <!-- ============ LOGIN ============ -->
   <section id="vista-login" class="login" hidden>
     <form id="form-login" class="login__card">
-      <div class="login__logo">💶</div>
+      <img src="icons/icon-192.png" alt="" class="login__logo" width="56" height="56">
       <h1>Control de gastos</h1>
+      <p class="login__sub">Entra para ver tus cuentas</p>
       <label>Email
         <input type="email" name="email" autocomplete="email" required>
       </label>
@@ -47,9 +88,9 @@
         <button data-tecla="1">1</button><button data-tecla="2">2</button><button data-tecla="3">3</button>
         <button data-tecla="4">4</button><button data-tecla="5">5</button><button data-tecla="6">6</button>
         <button data-tecla="7">7</button><button data-tecla="8">8</button><button data-tecla="9">9</button>
-        <button data-accion="huella" id="btn-huella" aria-label="Desbloquear con huella" class="teclado__huella">👆</button>
+        <button data-accion="huella" id="btn-huella" aria-label="Desbloquear con huella" class="teclado__huella"><svg class="ico"><use href="#i-huella"/></svg></button>
         <button data-tecla="0">0</button>
-        <button data-accion="borrar" aria-label="Borrar" class="teclado__borrar">⌫</button>
+        <button data-accion="borrar" aria-label="Borrar" class="teclado__borrar"><svg class="ico"><use href="#i-borrar"/></svg></button>
       </div>
       <button class="enlace" id="bloqueo-olvido">¿Has olvidado el PIN?</button>
     </div>
@@ -59,49 +100,62 @@
   <div id="app" hidden>
     <header class="topbar">
       <div class="topbar__mes" id="selector-mes">
-        <button class="icon-btn" id="mes-anterior" aria-label="Mes anterior">‹</button>
+        <button class="icon-btn" id="mes-anterior" aria-label="Mes anterior"><svg class="ico"><use href="#i-izq"/></svg></button>
         <h1 id="mes-titulo"></h1>
-        <button class="icon-btn" id="mes-siguiente" aria-label="Mes siguiente">›</button>
+        <button class="icon-btn" id="mes-siguiente" aria-label="Mes siguiente"><svg class="ico"><use href="#i-der"/></svg></button>
       </div>
       <div class="topbar__sub" id="cab-seccion" hidden>
-        <button class="icon-btn" id="btn-atras" aria-label="Volver" hidden>‹</button>
+        <button class="icon-btn" id="btn-atras" aria-label="Volver" hidden><svg class="ico"><use href="#i-izq"/></svg></button>
         <h1 class="topbar__titulo" id="titulo-seccion"></h1>
       </div>
-      <button class="btn-instalar" id="btn-instalar" hidden>⬇ Instalar</button>
+      <div class="topbar__acciones">
+        <button class="btn-instalar" id="btn-instalar" hidden><svg class="ico"><use href="#i-descargar"/></svg>Instalar</button>
+        <button class="icon-btn" id="btn-tema" aria-label="Cambiar entre tema claro y oscuro" title="Tema claro / oscuro"><svg class="ico"><use href="#i-luna"/></svg></button>
+      </div>
     </header>
 
     <main class="contenido">
       <!-- Resumen del mes -->
       <section id="tab-resumen" class="tab">
-        <div class="tarjetas">
-          <div class="tarjeta">
-            <span class="tarjeta__label">Ingresos</span>
-            <span class="tarjeta__valor positivo" id="total-ingresos">0 €</span>
+        <div class="resumen">
+          <div class="resumen__principal">
+            <div class="balance">
+              <p class="balance__label">Balance del mes</p>
+              <p class="balance__cifra" id="total-balance">0 €</p>
+              <div class="balance__barra" role="img" id="balance-barra" aria-label="Proporción de gastos sobre ingresos">
+                <span class="balance__gastado" id="balance-gastado"></span>
+              </div>
+              <p class="balance__nota" id="balance-nota"></p>
+              <div class="balance__stats">
+                <div class="stat stat--ingreso">
+                  <span class="stat__ico"><svg class="ico"><use href="#i-entra"/></svg></span>
+                  <span class="stat__txt"><span>Ingresos</span><b id="total-ingresos">0 €</b></span>
+                </div>
+                <div class="stat stat--gasto">
+                  <span class="stat__ico"><svg class="ico"><use href="#i-sale"/></svg></span>
+                  <span class="stat__txt"><span>Gastos</span><b id="total-gastos">0 €</b></span>
+                </div>
+              </div>
+            </div>
+
+            <div id="resumen-objetivos" hidden></div>
+
+            <h2 class="seccion-titulo">Gastos por categoría</h2>
+            <div id="por-categoria" class="barras"></div>
           </div>
-          <div class="tarjeta">
-            <span class="tarjeta__label">Gastos</span>
-            <span class="tarjeta__valor negativo" id="total-gastos">0 €</span>
-          </div>
-          <div class="tarjeta tarjeta--ancha">
-            <span class="tarjeta__label">Balance</span>
-            <span class="tarjeta__valor" id="total-balance">0 €</span>
+
+          <div class="resumen__lista">
+            <div class="cabecera-lista">
+              <h2 class="seccion-titulo">Movimientos</h2>
+              <div class="chips" id="filtros">
+                <button class="chip activo" data-filtro="todos">Todos</button>
+                <button class="chip" data-filtro="gasto">Gastos</button>
+                <button class="chip" data-filtro="ingreso">Ingresos</button>
+              </div>
+            </div>
+            <div id="lista-movimientos"></div>
           </div>
         </div>
-
-        <div id="resumen-objetivos" hidden></div>
-
-        <h2 class="seccion-titulo">Gastos por categoría</h2>
-        <div id="por-categoria" class="barras"></div>
-
-        <div class="cabecera-lista">
-          <h2 class="seccion-titulo">Movimientos</h2>
-          <div class="chips" id="filtros">
-            <button class="chip activo" data-filtro="todos">Todos</button>
-            <button class="chip" data-filtro="gasto">Gastos</button>
-            <button class="chip" data-filtro="ingreso">Ingresos</button>
-          </div>
-        </div>
-        <div id="lista-movimientos"></div>
       </section>
 
       <!-- Calendario y análisis -->
@@ -195,7 +249,8 @@
           <label class="check check--peque"><input type="checkbox" id="gr-sin-fijos"> Solo gastos variables</label>
         </div>
 
-        <div class="panel">
+        <div class="paneles">
+        <div class="panel panel--ancho">
           <h2 class="panel__titulo">Gasto acumulado del mes</h2>
           <p class="panel__sub" id="gr-acumulado-resumen"></p>
           <div id="gr-acumulado"></div>
@@ -228,6 +283,7 @@
           </div>
           <div id="gr-evolucion"></div>
         </div>
+        </div>
       </section>
 
       <!-- Objetivos -->
@@ -237,13 +293,20 @@
 
       <!-- Más -->
       <section id="tab-mas" class="tab" hidden>
+        <h2 class="seccion-titulo">Apariencia</h2>
+        <div class="segmentado segmentado--3 selector-tema" id="selector-tema">
+          <label><input type="radio" name="tema" value="auto"><span><svg class="ico"><use href="#i-auto"/></svg>Automático</span></label>
+          <label><input type="radio" name="tema" value="light"><span><svg class="ico"><use href="#i-sol"/></svg>Claro</span></label>
+          <label><input type="radio" name="tema" value="dark"><span><svg class="ico"><use href="#i-luna"/></svg>Oscuro</span></label>
+        </div>
+        <h2 class="seccion-titulo">Ajustes</h2>
         <ul class="lista menu">
-          <li><button class="item" data-ir="fijos"><span class="item__icono">🔁</span><span class="item__texto"><span class="item__titulo">Fijos</span><span class="item__sub">Nómina, pagas extra, alquiler, suscripciones…</span></span><span class="item__flecha">›</span></button></li>
-          <li><button class="item" data-ir="categorias"><span class="item__icono">🏷️</span><span class="item__texto"><span class="item__titulo">Categorías</span><span class="item__sub">Nombres, iconos y colores</span></span><span class="item__flecha">›</span></button></li>
-          <li><button class="item" data-ir="seguridad"><span class="item__icono">🔒</span><span class="item__texto"><span class="item__titulo">Seguridad</span><span class="item__sub" id="mas-seguridad-sub">PIN y huella</span></span><span class="item__flecha">›</span></button></li>
+          <li><button class="item" data-ir="fijos"><span class="item__icono item__icono--ui"><svg class="ico"><use href="#i-fijos"/></svg></span><span class="item__texto"><span class="item__titulo">Fijos</span><span class="item__sub">Nómina, pagas extra, alquiler, suscripciones…</span></span><svg class="ico item__flecha"><use href="#i-der"/></svg></button></li>
+          <li><button class="item" data-ir="categorias"><span class="item__icono item__icono--ui"><svg class="ico"><use href="#i-categorias"/></svg></span><span class="item__texto"><span class="item__titulo">Categorías</span><span class="item__sub">Nombres, iconos y colores</span></span><svg class="ico item__flecha"><use href="#i-der"/></svg></button></li>
+          <li><button class="item" data-ir="seguridad"><span class="item__icono item__icono--ui"><svg class="ico"><use href="#i-candado"/></svg></span><span class="item__texto"><span class="item__titulo">Seguridad</span><span class="item__sub" id="mas-seguridad-sub">PIN y huella</span></span><svg class="ico item__flecha"><use href="#i-der"/></svg></button></li>
         </ul>
         <ul class="lista menu" style="margin-top:16px">
-          <li><button class="item" id="btn-salir"><span class="item__icono">⎋</span><span class="item__texto"><span class="item__titulo negativo">Cerrar sesión</span></span></button></li>
+          <li><button class="item" id="btn-salir"><span class="item__icono item__icono--ui"><svg class="ico"><use href="#i-salir"/></svg></span><span class="item__texto"><span class="item__titulo negativo">Cerrar sesión</span></span></button></li>
         </ul>
       </section>
 
@@ -252,17 +315,17 @@
         <p class="ayuda">Se configura en cada dispositivo. Actívalo en el móvil y, si quieres, déjalo desactivado en el ordenador.</p>
         <ul class="lista menu">
           <li><div class="item item--fijo">
-            <span class="item__icono">🔢</span>
+            <span class="item__icono item__icono--ui"><svg class="ico"><use href="#i-pin"/></svg></span>
             <span class="item__texto"><span class="item__titulo">Bloqueo con PIN</span><span class="item__sub" id="seg-pin-estado">Desactivado</span></span>
             <button class="btn btn--peque" id="seg-pin-btn">Activar</button>
           </div></li>
           <li id="seg-huella-fila"><div class="item item--fijo">
-            <span class="item__icono">👆</span>
+            <span class="item__icono item__icono--ui"><svg class="ico"><use href="#i-huella"/></svg></span>
             <span class="item__texto"><span class="item__titulo">Desbloquear con huella</span><span class="item__sub" id="seg-huella-estado">Primero activa el PIN</span></span>
             <label class="interruptor"><input type="checkbox" id="seg-huella"><span></span></label>
           </div></li>
           <li><div class="item item--fijo">
-            <span class="item__icono">⏱️</span>
+            <span class="item__icono item__icono--ui"><svg class="ico"><use href="#i-reloj"/></svg></span>
             <span class="item__texto"><span class="item__titulo">Autobloqueo</span><span class="item__sub">Tras este tiempo en segundo plano</span></span>
             <select id="seg-minutos" class="select-peque">
               <option value="0">Siempre</option>
@@ -273,7 +336,7 @@
             </select>
           </div></li>
           <li><div class="item item--fijo">
-            <span class="item__icono">🔐</span>
+            <span class="item__icono item__icono--ui"><svg class="ico"><use href="#i-candado"/></svg></span>
             <span class="item__texto"><span class="item__titulo">Bloquear ahora</span></span>
             <button class="btn btn--peque" id="seg-bloquear-ya">Bloquear</button>
           </div></li>
@@ -312,14 +375,15 @@
       </section>
     </main>
 
-    <button class="fab" id="fab" aria-label="Añadir">+</button>
+    <button class="fab" id="fab" aria-label="Añadir"><svg class="ico"><use href="#i-plus"/></svg><span class="fab__txt">Añadir</span></button>
 
-    <nav class="bottom-nav">
-      <button class="bottom-nav__item activo" data-tab="resumen"><span>📊</span>Mes</button>
-      <button class="bottom-nav__item" data-tab="calendario"><span>📅</span>Calendario</button>
-      <button class="bottom-nav__item" data-tab="graficos"><span>📈</span>Gráficos</button>
-      <button class="bottom-nav__item" data-tab="objetivos"><span>🎯</span>Objetivos</button>
-      <button class="bottom-nav__item" data-tab="mas"><span>☰</span>Más</button>
+    <nav class="bottom-nav" aria-label="Secciones">
+      <div class="marca"><img src="icons/icon-192.png" alt="" width="32" height="32"><span>Control de gastos</span></div>
+      <button class="bottom-nav__item activo" data-tab="resumen"><svg class="ico"><use href="#i-mes"/></svg><span>Mes</span></button>
+      <button class="bottom-nav__item" data-tab="calendario"><svg class="ico"><use href="#i-calendario"/></svg><span>Calendario</span></button>
+      <button class="bottom-nav__item" data-tab="graficos"><svg class="ico"><use href="#i-graficos"/></svg><span>Gráficos</span></button>
+      <button class="bottom-nav__item" data-tab="objetivos"><svg class="ico"><use href="#i-objetivos"/></svg><span>Objetivos</span></button>
+      <button class="bottom-nav__item" data-tab="mas"><svg class="ico"><use href="#i-mas"/></svg><span>Más</span></button>
     </nav>
   </div>
 

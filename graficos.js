@@ -277,6 +277,31 @@ function lineaReferencia(svg, { m, W, y, referencia }) {
   el('text', { x: W - m.r, y: yy - 5, 'text-anchor': 'end', class: 'referencia-texto' }, svg).textContent = referencia.etiqueta;
 }
 
+// Curva monótona (Fritsch–Carlson): suave y sin "pasarse" de los datos
+function curva(p) {
+  if (p.length === 1) return `M${p[0][0]},${p[0][1]}`;
+  const n = p.length;
+  const dx = [], m = [];
+  for (let i = 0; i < n - 1; i++) {
+    dx[i] = p[i + 1][0] - p[i][0];
+    m[i] = (p[i + 1][1] - p[i][1]) / dx[i];
+  }
+  const t = [m[0]];
+  for (let i = 1; i < n - 1; i++) t[i] = m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2;
+  t[n - 1] = m[n - 2];
+  for (let i = 0; i < n - 1; i++) {
+    if (m[i] === 0) { t[i] = 0; t[i + 1] = 0; continue; }
+    const a = t[i] / m[i], b = t[i + 1] / m[i], h = a * a + b * b;
+    if (h > 9) { const k = 3 / Math.sqrt(h); t[i] = k * a * m[i]; t[i + 1] = k * b * m[i]; }
+  }
+  let d = `M${p[0][0].toFixed(1)},${p[0][1].toFixed(1)}`;
+  for (let i = 0; i < n - 1; i++) {
+    const c = dx[i] / 3;
+    d += `C${(p[i][0] + c).toFixed(1)},${(p[i][1] + t[i] * c).toFixed(1)} ${(p[i + 1][0] - c).toFixed(1)},${(p[i + 1][1] - t[i + 1] * c).toFixed(1)} ${p[i + 1][0].toFixed(1)},${p[i + 1][1].toFixed(1)}`;
+  }
+  return d;
+}
+
 // ---------- Líneas ----------
 function grafLineas(cont, { etiquetas, series, referencia, prefijoTooltip = '' }) {
   const tip = preparar(cont, series, { forma: 'linea' });
@@ -296,14 +321,27 @@ function grafLineas(cont, { etiquetas, series, referencia, prefijoTooltip = '' }
   });
   lineaReferencia(svg, { m, W, y, referencia });
 
+  const defs = el('defs', {}, svg);
   for (const s of [...series].reverse()) {
-    let d = '';
-    let dentro = false;
+    // Tramos continuos (sin huecos) dibujados como curva suave
+    const tramos = [];
+    let actual = [];
     s.valores.forEach((v, i) => {
-      if (v == null) { dentro = false; return; }
-      d += `${dentro ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`;
-      dentro = true;
+      if (v == null) { if (actual.length) tramos.push(actual); actual = []; return; }
+      actual.push([x(i), y(v)]);
     });
+    if (actual.length) tramos.push(actual);
+    const d = tramos.map(curva).join('');
+    // Relleno degradado bajo la serie principal
+    if (!s.discontinua && tramos.length) {
+      const id = `grad-${Math.random().toString(36).slice(2, 8)}`;
+      const g = el('linearGradient', { id, x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+      el('stop', { offset: 0, style: `stop-color:${s.color};stop-opacity:.22` }, g);
+      el('stop', { offset: 1, style: `stop-color:${s.color};stop-opacity:0` }, g);
+      for (const t of tramos) {
+        el('path', { d: `${curva(t)}L${t.at(-1)[0]},${y(0)}L${t[0][0]},${y(0)}Z`, fill: `url(#${id})` }, svg);
+      }
+    }
     el('path', { d, fill: 'none', stroke: s.color, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round', 'stroke-dasharray': s.discontinua ? '5 5' : null }, svg);
     // Etiqueta directa en el último punto
     const ult = s.valores.reduce((a, v, i) => (v != null ? i : a), -1);
