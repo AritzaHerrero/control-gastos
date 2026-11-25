@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4f6f8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Gastos">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Gastos</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <!-- Sube el número de versión (?v=) cada vez que cambies los archivos para evitar la caché -->
+  <link rel="stylesheet" href="styles.css?v=5">
+  <script type="module" src="app.js?v=5"></script>
+</head>
+<body>
+
+  <!-- ============ LOGIN ============ -->
+  <section id="vista-login" class="login" hidden>
+    <form id="form-login" class="login__card">
+      <div class="login__logo">💶</div>
+      <h1>Control de gastos</h1>
+      <label>Email
+        <input type="email" name="email" autocomplete="email" required>
+      </label>
+      <label>Contraseña
+        <input type="password" name="password" autocomplete="current-password" required>
+      </label>
+      <button type="submit" class="btn btn--primary">Entrar</button>
+      <p id="login-error" class="login__error" role="alert"></p>
+    </form>
+  </section>
+
+  <!-- ============ APP ============ -->
+  <div id="app" hidden>
+    <header class="topbar">
+      <div class="topbar__mes" id="selector-mes">
+        <button class="icon-btn" id="mes-anterior" aria-label="Mes anterior">‹</button>
+        <h1 id="mes-titulo"></h1>
+        <button class="icon-btn" id="mes-siguiente" aria-label="Mes siguiente">›</button>
+      </div>
+      <h1 class="topbar__titulo" id="titulo-seccion" hidden></h1>
+      <button class="btn-instalar" id="btn-instalar" hidden>⬇ Instalar</button>
+      <button class="icon-btn" id="btn-salir" aria-label="Cerrar sesión" title="Cerrar sesión">⎋</button>
+    </header>
+
+    <main class="contenido">
+      <!-- Resumen del mes -->
+      <section id="tab-resumen" class="tab">
+        <div class="tarjetas">
+          <div class="tarjeta">
+            <span class="tarjeta__label">Ingresos</span>
+            <span class="tarjeta__valor positivo" id="total-ingresos">0 €</span>
+          </div>
+          <div class="tarjeta">
+            <span class="tarjeta__label">Gastos</span>
+            <span class="tarjeta__valor negativo" id="total-gastos">0 €</span>
+          </div>
+          <div class="tarjeta tarjeta--ancha">
+            <span class="tarjeta__label">Balance</span>
+            <span class="tarjeta__valor" id="total-balance">0 €</span>
+          </div>
+        </div>
+
+        <h2 class="seccion-titulo">Gastos por categoría</h2>
+        <div id="por-categoria" class="barras"></div>
+
+        <div class="cabecera-lista">
+          <h2 class="seccion-titulo">Movimientos</h2>
+          <div class="chips" id="filtros">
+            <button class="chip activo" data-filtro="todos">Todos</button>
+            <button class="chip" data-filtro="gasto">Gastos</button>
+            <button class="chip" data-filtro="ingreso">Ingresos</button>
+          </div>
+        </div>
+        <div id="lista-movimientos"></div>
+      </section>
+
+      <!-- Calendario y análisis -->
+      <section id="tab-calendario" class="tab" hidden>
+        <div class="barra-opciones">
+          <div class="chips" id="cal-vista">
+            <button class="chip activo" data-vista="mes">Mes</button>
+            <button class="chip" data-vista="anio">Año</button>
+          </div>
+          <label class="check check--peque">
+            <input type="checkbox" id="cal-sin-fijos"> Solo gastos variables
+          </label>
+        </div>
+
+        <!-- Vista mes -->
+        <div id="cal-mes">
+          <div class="tarjetas">
+            <div class="tarjeta">
+              <span class="tarjeta__label">Gastado</span>
+              <span class="tarjeta__valor negativo" id="cal-total">0 €</span>
+              <span class="tarjeta__sub" id="cal-total-sub"></span>
+            </div>
+            <div class="tarjeta">
+              <span class="tarjeta__label">Media diaria</span>
+              <span class="tarjeta__valor" id="cal-media">0 €</span>
+              <span class="tarjeta__sub" id="cal-media-sub"></span>
+            </div>
+            <div class="tarjeta">
+              <span class="tarjeta__label">Entre semana</span>
+              <span class="tarjeta__valor" id="cal-laborable">0 €</span>
+              <span class="tarjeta__sub" id="cal-laborable-sub"></span>
+            </div>
+            <div class="tarjeta">
+              <span class="tarjeta__label">Fines de semana</span>
+              <span class="tarjeta__valor" id="cal-finde">0 €</span>
+              <span class="tarjeta__sub" id="cal-finde-sub"></span>
+            </div>
+          </div>
+
+          <div class="calendario">
+            <div class="calendario__cab">
+              <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span class="finde">S</span><span class="finde">D</span>
+            </div>
+            <div class="calendario__grid" id="cal-grid"></div>
+          </div>
+
+          <div id="cal-dia"></div>
+
+          <h2 class="seccion-titulo">Por semana</h2>
+          <div id="cal-semanas" class="barras"></div>
+
+          <h2 class="seccion-titulo">Por día de la semana</h2>
+          <div id="cal-dias-semana" class="barras"></div>
+        </div>
+
+        <!-- Vista año -->
+        <div id="cal-anio" hidden>
+          <div class="tarjetas">
+            <div class="tarjeta">
+              <span class="tarjeta__label">Ingresos</span>
+              <span class="tarjeta__valor positivo" id="anio-ingresos">0 €</span>
+            </div>
+            <div class="tarjeta">
+              <span class="tarjeta__label">Gastos</span>
+              <span class="tarjeta__valor negativo" id="anio-gastos">0 €</span>
+            </div>
+            <div class="tarjeta">
+              <span class="tarjeta__label">Ahorro</span>
+              <span class="tarjeta__valor" id="anio-ahorro">0 €</span>
+              <span class="tarjeta__sub" id="anio-ahorro-sub"></span>
+            </div>
+            <div class="tarjeta">
+              <span class="tarjeta__label">Gasto medio al mes</span>
+              <span class="tarjeta__valor" id="anio-media">0 €</span>
+              <span class="tarjeta__sub" id="anio-media-sub"></span>
+            </div>
+          </div>
+
+          <h2 class="seccion-titulo">Mes a mes</h2>
+          <div id="anio-meses" class="barras"></div>
+
+          <h2 class="seccion-titulo">Gastos por categoría</h2>
+          <div id="anio-categorias" class="barras"></div>
+        </div>
+      </section>
+
+      <!-- Fijos mensuales -->
+      <section id="tab-fijos" class="tab" hidden>
+        <div class="tarjetas">
+          <div class="tarjeta">
+            <span class="tarjeta__label">Ingresos fijos / mes</span>
+            <span class="tarjeta__valor positivo" id="fijos-ingresos">0 €</span>
+          </div>
+          <div class="tarjeta">
+            <span class="tarjeta__label">Gastos fijos / mes</span>
+            <span class="tarjeta__valor negativo" id="fijos-gastos">0 €</span>
+          </div>
+          <div class="tarjeta tarjeta--ancha">
+            <span class="tarjeta__label">Te queda cada mes para lo variable</span>
+            <span class="tarjeta__valor" id="fijos-margen">0 €</span>
+          </div>
+        </div>
+        <p class="ayuda" id="fijos-parciales" hidden></p>
+        <p class="ayuda">Los fijos se apuntan solos como movimientos el día del mes que indiques, todos los meses o solo en los que elijas.</p>
+        <div id="lista-fijos"></div>
+      </section>
+
+      <!-- Categorías -->
+      <section id="tab-categorias" class="tab" hidden>
+        <h2 class="seccion-titulo">De gasto</h2>
+        <ul class="lista" id="lista-cat-gasto"></ul>
+        <h2 class="seccion-titulo">De ingreso</h2>
+        <ul class="lista" id="lista-cat-ingreso"></ul>
+      </section>
+    </main>
+
+    <button class="fab" id="fab" aria-label="Añadir">+</button>
+
+    <nav class="bottom-nav">
+      <button class="bottom-nav__item activo" data-tab="resumen"><span>📊</span>Mes</button>
+      <button class="bottom-nav__item" data-tab="calendario"><span>📅</span>Calendario</button>
+      <button class="bottom-nav__item" data-tab="fijos"><span>🔁</span>Fijos</button>
+      <button class="bottom-nav__item" data-tab="categorias"><span>🏷️</span>Categorías</button>
+    </nav>
+  </div>
+
+  <!-- ============ MODAL MOVIMIENTO ============ -->
+  <dialog id="dlg-movimiento" class="modal">
+    <form method="dialog" id="form-movimiento" class="modal__form">
+      <h2 id="mov-titulo">Nuevo movimiento</h2>
+      <div class="segmentado">
+        <label><input type="radio" name="tipo" value="gasto" checked><span>Gasto</span></label>
+        <label><input type="radio" name="tipo" value="ingreso"><span>Ingreso</span></label>
+      </div>
+      <label>Importe (€)
+        <input type="text" name="importe" inputmode="decimal" placeholder="0,00" required autocomplete="off" class="input-importe">
+      </label>
+      <label>Categoría
+        <select name="categoria_id"></select>
+      </label>
+      <label>Fecha
+        <input type="date" name="fecha" required>
+      </label>
+      <label>Descripción
+        <input type="text" name="descripcion" maxlength="120" placeholder="Opcional" autocomplete="off">
+      </label>
+      <p class="ayuda" id="mov-aviso-fijo" hidden>Generado por un fijo mensual.</p>
+      <div class="modal__acciones">
+        <button type="button" class="btn btn--peligro" id="mov-eliminar" hidden>Eliminar</button>
+        <span class="espaciador"></span>
+        <button type="button" class="btn" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn btn--primary">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ============ MODAL FIJO ============ -->
+  <dialog id="dlg-fijo" class="modal">
+    <form method="dialog" id="form-fijo" class="modal__form">
+      <h2 id="fijo-titulo">Nuevo fijo mensual</h2>
+      <div class="segmentado">
+        <label><input type="radio" name="tipo" value="gasto" checked><span>Gasto</span></label>
+        <label><input type="radio" name="tipo" value="ingreso"><span>Ingreso</span></label>
+      </div>
+      <label>Nombre
+        <input type="text" name="nombre" maxlength="60" placeholder="Nómina, Netflix, alquiler…" required autocomplete="off">
+      </label>
+      <div class="fila">
+        <label>Importe (€)
+          <input type="text" name="importe" inputmode="decimal" placeholder="0,00" required autocomplete="off">
+        </label>
+        <label>Día del mes
+          <input type="number" name="dia_mes" min="1" max="31" required>
+        </label>
+      </div>
+      <label>Categoría
+        <select name="categoria_id"></select>
+      </label>
+      <fieldset class="repeticion">
+        <legend>Se repite</legend>
+        <div class="segmentado">
+          <label><input type="radio" name="frecuencia" value="todos" checked><span>Todos los meses</span></label>
+          <label><input type="radio" name="frecuencia" value="algunos"><span>Solo algunos meses</span></label>
+        </div>
+        <div class="meses" id="fijo-meses" hidden>
+          <label><input type="checkbox" name="meses" value="1"><span>Ene</span></label>
+          <label><input type="checkbox" name="meses" value="2"><span>Feb</span></label>
+          <label><input type="checkbox" name="meses" value="3"><span>Mar</span></label>
+          <label><input type="checkbox" name="meses" value="4"><span>Abr</span></label>
+          <label><input type="checkbox" name="meses" value="5"><span>May</span></label>
+          <label><input type="checkbox" name="meses" value="6"><span>Jun</span></label>
+          <label><input type="checkbox" name="meses" value="7"><span>Jul</span></label>
+          <label><input type="checkbox" name="meses" value="8"><span>Ago</span></label>
+          <label><input type="checkbox" name="meses" value="9"><span>Sep</span></label>
+          <label><input type="checkbox" name="meses" value="10"><span>Oct</span></label>
+          <label><input type="checkbox" name="meses" value="11"><span>Nov</span></label>
+          <label><input type="checkbox" name="meses" value="12"><span>Dic</span></label>
+        </div>
+        <button type="button" class="enlace" id="atajo-paga-extra" hidden>Paga extra (junio y diciembre)</button>
+      </fieldset>
+      <div class="fila">
+        <label>Desde
+          <input type="date" name="fecha_inicio" required>
+        </label>
+        <label>Hasta
+          <input type="date" name="fecha_fin">
+        </label>
+      </div>
+      <label class="check">
+        <input type="checkbox" name="activo" checked> Activo
+      </label>
+      <p class="ayuda">Si el día no existe en un mes (p. ej. 31), se usa el último día. Cambiar el importe solo afecta a los meses siguientes.</p>
+      <div class="modal__acciones">
+        <button type="button" class="btn btn--peligro" id="fijo-eliminar" hidden>Eliminar</button>
+        <span class="espaciador"></span>
+        <button type="button" class="btn" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn btn--primary">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ============ MODAL CATEGORÍA ============ -->
+  <dialog id="dlg-categoria" class="modal">
+    <form method="dialog" id="form-categoria" class="modal__form">
+      <h2 id="cat-titulo">Nueva categoría</h2>
+      <div class="segmentado">
+        <label><input type="radio" name="tipo" value="gasto" checked><span>Gasto</span></label>
+        <label><input type="radio" name="tipo" value="ingreso"><span>Ingreso</span></label>
+      </div>
+      <div class="fila fila--icono">
+        <label>Icono
+          <input type="text" name="icono" maxlength="4" required class="input-icono">
+        </label>
+        <label>Nombre
+          <input type="text" name="nombre" maxlength="40" required autocomplete="off">
+        </label>
+        <label>Color
+          <input type="color" name="color" value="#64748b">
+        </label>
+      </div>
+      <p class="ayuda" id="cat-aviso" hidden>Si la eliminas, sus movimientos quedarán como "Sin categoría".</p>
+      <div class="modal__acciones">
+        <button type="button" class="btn btn--peligro" id="cat-eliminar" hidden>Eliminar</button>
+        <span class="espaciador"></span>
+        <button type="button" class="btn" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn btn--primary">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
