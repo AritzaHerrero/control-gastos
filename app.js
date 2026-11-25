@@ -3,6 +3,18 @@
 // HTML + CSS + JS sin framework, datos en Supabase
 // =========================================================
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {
+  $, $$, eur, fmtMesBase, fmtMes, _fmtDia, cap, fmtDia, primerDiaMes, ultimoDiaMes, pad, isoLocal, desdeIso, hoyIso, parseImporte, importeATexto, esc, toast, fallo, MESES_CORTOS, textoMeses, DIAS_SEMANA, MESES_LARGOS, eur0, diaSemana, esFinde, cargarRango, sumar, addDias, diasEntre,
+} from './util.js';
+import {
+  initBloqueo, bloquear, tienePin, tieneHuella, huellaDisponible, guardarPinNuevo, quitarBloqueo,
+  activarHuella, desactivarHuella, minutosBloqueo, ponerMinutos,
+} from './bloqueo.js';
+import { initGraficos, renderGraficos, invalidarGraficos } from './graficos.js';
+import {
+  initObjetivos, cargarObjetivos, renderObjetivos, renderMiniObjetivos, abrirObjetivo,
+  invalidarObjetivos, limiteMensualTotal,
+} from './objetivos.js';
 
 // La clave publicable es pública por diseño: la seguridad la dan
 // el login y las políticas RLS de la base de datos.
@@ -12,7 +24,7 @@ const SUPABASE_KEY = 'sb_publishable_KuBhTzrQqGVF_iEzhWI34Q_GZVpBAc9';
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Si el index.html es de una versión anterior (caché), avisa en vez de fallar
-if (!document.querySelector('#cal-grid')) {
+if (!document.querySelector('#tab-objetivos')) {
   document.body.insertAdjacentHTML('afterbegin',
     '<p style="background:#dc2626;color:#fff;padding:12px;margin:0;text-align:center">' +
     'El index.html está desactualizado. Sustitúyelo y recarga con Ctrl+F5.</p>');
@@ -54,72 +66,15 @@ const CATEGORIAS_INICIALES = [
   { tipo: 'ingreso', icono: '💰', nombre: 'Otros ingresos', color: '#65a30d' },
 ];
 
-// ---------- Utilidades ----------
-const $ = (sel) => document.querySelector(sel);
-const $$ = (sel) => [...document.querySelectorAll(sel)];
-
-const eur = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
-const fmtMesBase = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' });
-const fmtMes = { format: (d) => fmtMesBase.format(d).replace(/^./, (c) => c.toUpperCase()) };
-const _fmtDia = new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
-const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-// "noviembre de 2026" -> "Noviembre de 2026"; "sábado, 14 de noviembre" -> "Sábado, 14 de noviembre"
-const fmtDia = { format: (d) => cap(_fmtDia.format(d)) };
-
-function primerDiaMes(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
-function ultimoDiaMes(d) { return new Date(d.getFullYear(), d.getMonth() + 1, 0); }
-function pad(n) { return String(n).padStart(2, '0'); }
-// Fecha local en formato YYYY-MM-DD (sin desfase de zona horaria)
-function isoLocal(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
-function desdeIso(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
-function hoyIso() { return isoLocal(new Date()); }
-
-function parseImporte(txt) {
-  // Acepta "12,50", "12.50", "1.234,56" y "1234.56"
-  let s = String(txt).trim().replace(/\s|€/g, '');
-  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
-  const n = Number(s);
-  return Number.isFinite(n) ? Math.round(n * 100) / 100 : NaN;
-}
-function importeATexto(n) { return Number(n).toFixed(2).replace('.', ','); }
-
-function esc(s) {
-  return String(s ?? '').replace(/[&<>"']/g, (c) => (
-    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
-  ));
-}
-
-let toastTimer;
-function toast(msg, error = false) {
-  const t = $('#toast');
-  t.textContent = msg;
-  t.classList.toggle('error', error);
-  t.classList.add('visible');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('visible'), error ? 4000 : 2200);
-}
-
-function fallo(err) {
-  console.error(err);
-  if (!navigator.onLine || /failed to fetch|network/i.test(err?.message || '')) {
-    return toast('Sin conexión: no se pueden cargar ni guardar datos', true);
-  }
-  toast(err?.message || 'Algo ha fallado', true);
-}
-
-const MESES_CORTOS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-// [6, 12] -> "Jun y Dic"; null -> "Todos los meses"
-function textoMeses(meses) {
-  if (!meses?.length || meses.length === 12) return 'Todos los meses';
-  const n = [...meses].sort((a, b) => a - b).map((m) => MESES_CORTOS[m - 1]);
-  return n.length === 1 ? n[0] : `${n.slice(0, -1).join(', ')} y ${n.at(-1)}`;
-}
+// Utilidades compartidas (fechas, formato, avisos) en util.js
 
 const catPorId = (id) => state.categorias.find((c) => c.id === id);
 const SIN_CAT = { nombre: 'Sin categoría', icono: '❔', color: '#94a3b8' };
 
 // ---------- Autenticación ----------
-sb.auth.onAuthStateChange((_evento, session) => {
+sb.auth.onAuthStateChange((evento, session) => {
+  // Al abrir la app con la sesión ya iniciada, pide PIN/huella si está configurado
+  if (evento === 'INITIAL_SESSION' && session?.user) bloquear();
   // No hacer llamadas a Supabase dentro del callback: se difieren.
   setTimeout(() => {
     if (session?.user && !state.user) {
@@ -149,7 +104,7 @@ $('#form-login').addEventListener('submit', async (e) => {
 });
 
 $('#btn-salir').addEventListener('click', async () => {
-  if (confirm('¿Cerrar sesión?')) await sb.auth.signOut();
+  if (confirm('¿Cerrar sesión?')) await cerrarSesion();
 });
 
 async function iniciar() {
@@ -158,7 +113,7 @@ async function iniciar() {
   try {
     await asegurarCategorias();
     await generarFijos();
-    await Promise.all([cargarCategorias(), cargarFijos()]);
+    await Promise.all([cargarCategorias(), cargarFijos(), cargarObjetivos()]);
     await cargarMes();
     aplicarAtajo();
     render();
@@ -169,7 +124,7 @@ async function iniciar() {
 function aplicarAtajo() {
   const p = new URLSearchParams(location.search);
   const tab = p.get('tab');
-  if (['resumen', 'calendario', 'fijos', 'categorias'].includes(tab)) state.tab = tab;
+  if (TABS.includes(tab)) state.tab = tab;
   if (p.get('accion') === 'nuevo') setTimeout(() => abrirMovimiento(), 0);
   if (tab || p.has('accion')) history.replaceState(null, '', location.pathname);
 }
@@ -234,6 +189,8 @@ async function cargarMes() {
   if (error) throw error;
   state.movimientos = data;
   state.cal.anio = null; // los datos han podido cambiar: recargar la vista año
+  invalidarGraficos();
+  invalidarObjetivos();
 }
 
 // Supabase devuelve como máximo 1000 filas por consulta: pide por páginas
@@ -253,25 +210,45 @@ async function cargarAnio(anio) {
 }
 
 // ---------- Render ----------
+const TABS = ['resumen', 'calendario', 'graficos', 'objetivos', 'mas', 'fijos', 'categorias', 'seguridad'];
+const SUBPAGINAS = { fijos: 'Fijos', categorias: 'Categorías', seguridad: 'Seguridad' };
+const TITULOS = { objetivos: 'Objetivos', mas: 'Más', ...SUBPAGINAS };
+
 function render() {
   const vistaAnio = state.tab === 'calendario' && state.cal.vista === 'anio';
   $('#mes-titulo').textContent = vistaAnio ? String(state.mes.getFullYear()) : fmtMes.format(state.mes);
-  const conSelector = state.tab === 'resumen' || state.tab === 'calendario';
+  const conSelector = ['resumen', 'calendario', 'graficos'].includes(state.tab);
   $('#selector-mes').hidden = !conSelector;
-  $('#titulo-seccion').hidden = conSelector;
-  $('#titulo-seccion').textContent = state.tab === 'fijos' ? 'Fijos mensuales' : 'Categorías';
+  $('#cab-seccion').hidden = conSelector;
+  $('#titulo-seccion').textContent = TITULOS[state.tab] || '';
+  $('#btn-atras').hidden = !SUBPAGINAS[state.tab];
+  $('#fab').hidden = ['mas', 'seguridad'].includes(state.tab);
 
   $$('.tab').forEach((t) => { t.hidden = t.id !== `tab-${state.tab}`; });
-  $$('.bottom-nav__item').forEach((b) => b.classList.toggle('activo', b.dataset.tab === state.tab));
+  const navActiva = SUBPAGINAS[state.tab] ? 'mas' : state.tab;
+  $$('.bottom-nav__item').forEach((b) => b.classList.toggle('activo', b.dataset.tab === navActiva));
 
   if (state.tab === 'resumen') renderResumen();
   if (state.tab === 'calendario') renderCalendario();
+  if (state.tab === 'graficos') renderGraficos().catch(fallo);
+  if (state.tab === 'objetivos') renderObjetivos().catch(fallo);
   if (state.tab === 'fijos') renderFijos();
   if (state.tab === 'categorias') renderCategorias();
+  if (state.tab === 'seguridad') renderSeguridad();
+  if (state.tab === 'mas') $('#mas-seguridad-sub').textContent = tienePin()
+    ? `PIN activado${tieneHuella() ? ' · huella' : ''}` : 'PIN y huella: desactivado';
+}
+
+function irA(tab) {
+  state.tab = tab;
+  render();
+  window.scrollTo(0, 0);
 }
 
 function renderResumen() {
   const movs = state.movimientos;
+  const hoy = new Date();
+  renderMiniObjetivos(state.mes.getFullYear() === hoy.getFullYear() && state.mes.getMonth() === hoy.getMonth()).catch(() => {});
   const ingresos = movs.filter((m) => m.tipo === 'ingreso').reduce((s, m) => s + Number(m.importe), 0);
   const gastos = movs.filter((m) => m.tipo === 'gasto').reduce((s, m) => s + Number(m.importe), 0);
   const balance = ingresos - gastos;
@@ -380,14 +357,6 @@ function renderFijos() {
 }
 
 // ---------- Calendario y análisis ----------
-const DIAS_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-const MESES_LARGOS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio',
-  'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-const eur0 = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 0 });
-
-const diaSemana = (iso) => (desdeIso(iso).getDay() + 6) % 7; // 0 = lunes … 6 = domingo
-const esFinde = (iso) => diaSemana(iso) >= 5;
-
 // Gastos que cuentan en el calendario (respeta "Solo gastos variables")
 const gastosCal = (movs) => movs.filter((m) => m.tipo === 'gasto' && !(state.cal.sinFijos && m.recurrente_id));
 
@@ -632,11 +601,8 @@ function renderCategorias() {
 }
 
 // ---------- Navegación ----------
-$$('.bottom-nav__item').forEach((b) => b.addEventListener('click', () => {
-  state.tab = b.dataset.tab;
-  render();
-  window.scrollTo(0, 0);
-}));
+$$('.bottom-nav__item').forEach((b) => b.addEventListener('click', () => irA(b.dataset.tab)));
+$('#btn-atras').addEventListener('click', () => irA('mas'));
 
 $('#mes-anterior').addEventListener('click', () => cambiarMes(-1));
 $('#mes-siguiente').addEventListener('click', () => cambiarMes(1));
@@ -659,8 +625,10 @@ $('#filtros').addEventListener('click', (e) => {
 $('#fab').addEventListener('click', () => {
   if (state.tab === 'resumen') abrirMovimiento();
   else if (state.tab === 'calendario') abrirMovimiento(null, state.cal.vista === 'mes' ? state.cal.diaSel : null);
+  else if (state.tab === 'graficos') abrirMovimiento();
+  else if (state.tab === 'objetivos') abrirObjetivo();
   else if (state.tab === 'fijos') abrirFijo();
-  else abrirCategoria();
+  else if (state.tab === 'categorias') abrirCategoria();
 });
 
 // Clic en elementos de las listas (delegación)
@@ -671,6 +639,8 @@ document.addEventListener('click', (e) => {
   if (fijo) return abrirFijo(state.fijos.find((f) => f.id === Number(fijo.dataset.fijo)));
   const cat = e.target.closest('[data-cat]');
   if (cat) return abrirCategoria(catPorId(Number(cat.dataset.cat)));
+  const ir = e.target.closest('[data-ir]');
+  if (ir) return irA(ir.dataset.ir);
   const dia = e.target.closest('[data-dia]');
   if (dia) {
     state.cal.diaSel = dia.dataset.dia;
@@ -945,4 +915,78 @@ document.addEventListener('visibilitychange', async () => {
     await cargarMes();
     render();
   } catch { /* silencioso */ }
+});
+
+// ---------- Sesión ----------
+async function cerrarSesion() {
+  await sb.auth.signOut();
+  state.tab = 'resumen';
+}
+
+// ---------- Módulos: bloqueo, gráficos y objetivos ----------
+initBloqueo({ onCerrarSesion: cerrarSesion });
+initGraficos({ sb, state, catPorId, SIN_CAT, limiteMensualTotal });
+initObjetivos({
+  sb, state, catPorId, SIN_CAT, guardar, irA,
+  alCambiar: () => render(),
+});
+
+// ---------- Ajustes de seguridad ----------
+async function renderSeguridad() {
+  const pin = tienePin();
+  $('#seg-pin-estado').textContent = pin ? 'Activado en este dispositivo' : 'Desactivado';
+  $('#seg-pin-btn').textContent = pin ? 'Cambiar' : 'Activar';
+  $('#seg-quitar').hidden = !pin;
+  $('#seg-minutos').value = String(minutosBloqueo());
+  $('#seg-minutos').disabled = !pin;
+  $('#seg-bloquear-ya').disabled = !pin;
+  const huella = $('#seg-huella');
+  huella.checked = tieneHuella();
+  const disponible = await huellaDisponible();
+  huella.disabled = !pin || !disponible;
+  $('#seg-huella-estado').textContent = !disponible
+    ? 'Este dispositivo no tiene lector disponible'
+    : !pin ? 'Primero activa el PIN' : tieneHuella() ? 'Activada' : 'Desactivada';
+}
+
+$('#seg-pin-btn').addEventListener('click', () => {
+  $('#form-pin').reset();
+  $('#dlg-pin').showModal();
+  setTimeout(() => $('#form-pin').pin.focus(), 50);
+});
+
+$('#form-pin').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  if (!/^\d{4,6}$/.test(f.pin.value)) return toast('El PIN debe tener de 4 a 6 números', true);
+  if (f.pin.value !== f.pin2.value) return toast('Los PIN no coinciden', true);
+  await guardarPinNuevo(f.pin.value);
+  $('#dlg-pin').close();
+  renderSeguridad();
+  if (!tieneHuella() && await huellaDisponible()) toast('PIN guardado. Puedes activar también la huella');
+});
+
+$('#seg-huella').addEventListener('change', async (e) => {
+  if (e.target.checked) {
+    try {
+      await activarHuella();
+      toast('Huella activada');
+    } catch (err) {
+      e.target.checked = false;
+      toast(err?.name === 'NotAllowedError' ? 'Cancelado' : 'No se pudo activar la huella', true);
+    }
+  } else {
+    desactivarHuella();
+    toast('Huella desactivada');
+  }
+  renderSeguridad();
+});
+
+$('#seg-minutos').addEventListener('change', (e) => ponerMinutos(Number(e.target.value)));
+$('#seg-bloquear-ya').addEventListener('click', () => bloquear());
+$('#seg-quitar').addEventListener('click', () => {
+  if (!confirm('¿Quitar el PIN y la huella de este dispositivo?')) return;
+  quitarBloqueo();
+  renderSeguridad();
+  toast('Bloqueo quitado');
 });

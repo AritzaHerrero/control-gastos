@@ -4,12 +4,16 @@
 // versión (adiós a la caché vieja) y sin conexión abre la guardada.
 // Las llamadas a Supabase (tus datos) nunca se cachean.
 // =========================================================
-const CACHE = 'gastos-v1';
+const CACHE = 'gastos-v2';
 const APP = [
   './',
   './index.html',
   './styles.css',
   './app.js',
+  './util.js',
+  './bloqueo.js',
+  './graficos.js',
+  './objetivos.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',

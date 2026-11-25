@@ -15,8 +15,8 @@
   <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <!-- Sube el número de versión (?v=) cada vez que cambies los archivos para evitar la caché -->
-  <link rel="stylesheet" href="styles.css?v=5">
-  <script type="module" src="app.js?v=5"></script>
+  <link rel="stylesheet" href="styles.css?v=6">
+  <script type="module" src="app.js?v=6"></script>
 </head>
 <body>
 
@@ -36,6 +36,25 @@
     </form>
   </section>
 
+
+  <!-- ============ BLOQUEO (PIN / HUELLA) ============ -->
+  <section id="vista-bloqueo" class="bloqueo" hidden>
+    <div class="bloqueo__caja">
+      <img src="icons/icon-192.png" alt="" class="bloqueo__logo" width="64" height="64">
+      <p id="bloqueo-msg" class="bloqueo__msg">Introduce tu PIN</p>
+      <div id="bloqueo-puntos" class="bloqueo__puntos"></div>
+      <div class="teclado">
+        <button data-tecla="1">1</button><button data-tecla="2">2</button><button data-tecla="3">3</button>
+        <button data-tecla="4">4</button><button data-tecla="5">5</button><button data-tecla="6">6</button>
+        <button data-tecla="7">7</button><button data-tecla="8">8</button><button data-tecla="9">9</button>
+        <button data-accion="huella" id="btn-huella" aria-label="Desbloquear con huella" class="teclado__huella">👆</button>
+        <button data-tecla="0">0</button>
+        <button data-accion="borrar" aria-label="Borrar" class="teclado__borrar">⌫</button>
+      </div>
+      <button class="enlace" id="bloqueo-olvido">¿Has olvidado el PIN?</button>
+    </div>
+  </section>
+
   <!-- ============ APP ============ -->
   <div id="app" hidden>
     <header class="topbar">
@@ -44,9 +63,11 @@
         <h1 id="mes-titulo"></h1>
         <button class="icon-btn" id="mes-siguiente" aria-label="Mes siguiente">›</button>
       </div>
-      <h1 class="topbar__titulo" id="titulo-seccion" hidden></h1>
+      <div class="topbar__sub" id="cab-seccion" hidden>
+        <button class="icon-btn" id="btn-atras" aria-label="Volver" hidden>‹</button>
+        <h1 class="topbar__titulo" id="titulo-seccion"></h1>
+      </div>
       <button class="btn-instalar" id="btn-instalar" hidden>⬇ Instalar</button>
-      <button class="icon-btn" id="btn-salir" aria-label="Cerrar sesión" title="Cerrar sesión">⎋</button>
     </header>
 
     <main class="contenido">
@@ -66,6 +87,8 @@
             <span class="tarjeta__valor" id="total-balance">0 €</span>
           </div>
         </div>
+
+        <div id="resumen-objetivos" hidden></div>
 
         <h2 class="seccion-titulo">Gastos por categoría</h2>
         <div id="por-categoria" class="barras"></div>
@@ -165,6 +188,100 @@
         </div>
       </section>
 
+      <!-- Gráficos -->
+      <section id="tab-graficos" class="tab" hidden>
+        <div class="barra-opciones">
+          <span class="ayuda" style="margin:0">Últimos 12 meses hasta el mes elegido</span>
+          <label class="check check--peque"><input type="checkbox" id="gr-sin-fijos"> Solo gastos variables</label>
+        </div>
+
+        <div class="panel">
+          <h2 class="panel__titulo">Gasto acumulado del mes</h2>
+          <p class="panel__sub" id="gr-acumulado-resumen"></p>
+          <div id="gr-acumulado"></div>
+        </div>
+
+        <div class="panel">
+          <h2 class="panel__titulo">¿En qué se va el dinero este mes?</h2>
+          <div id="gr-categorias"></div>
+        </div>
+
+        <div class="panel">
+          <h2 class="panel__titulo">Ingresos y gastos</h2>
+          <div id="gr-12meses"></div>
+        </div>
+
+        <div class="panel">
+          <h2 class="panel__titulo">Ahorro de cada mes</h2>
+          <p class="panel__sub" id="gr-ahorro-resumen"></p>
+          <div id="gr-ahorro"></div>
+          <details class="ver-tabla">
+            <summary>Ver los datos en tabla</summary>
+            <div id="gr-tabla"></div>
+          </details>
+        </div>
+
+        <div class="panel">
+          <div class="panel__cab">
+            <h2 class="panel__titulo">Evolución de</h2>
+            <select id="gr-categoria" aria-label="Categoría"></select>
+          </div>
+          <div id="gr-evolucion"></div>
+        </div>
+      </section>
+
+      <!-- Objetivos -->
+      <section id="tab-objetivos" class="tab" hidden>
+        <div id="lista-objetivos"></div>
+      </section>
+
+      <!-- Más -->
+      <section id="tab-mas" class="tab" hidden>
+        <ul class="lista menu">
+          <li><button class="item" data-ir="fijos"><span class="item__icono">🔁</span><span class="item__texto"><span class="item__titulo">Fijos</span><span class="item__sub">Nómina, pagas extra, alquiler, suscripciones…</span></span><span class="item__flecha">›</span></button></li>
+          <li><button class="item" data-ir="categorias"><span class="item__icono">🏷️</span><span class="item__texto"><span class="item__titulo">Categorías</span><span class="item__sub">Nombres, iconos y colores</span></span><span class="item__flecha">›</span></button></li>
+          <li><button class="item" data-ir="seguridad"><span class="item__icono">🔒</span><span class="item__texto"><span class="item__titulo">Seguridad</span><span class="item__sub" id="mas-seguridad-sub">PIN y huella</span></span><span class="item__flecha">›</span></button></li>
+        </ul>
+        <ul class="lista menu" style="margin-top:16px">
+          <li><button class="item" id="btn-salir"><span class="item__icono">⎋</span><span class="item__texto"><span class="item__titulo negativo">Cerrar sesión</span></span></button></li>
+        </ul>
+      </section>
+
+      <!-- Seguridad -->
+      <section id="tab-seguridad" class="tab" hidden>
+        <p class="ayuda">Se configura en cada dispositivo. Actívalo en el móvil y, si quieres, déjalo desactivado en el ordenador.</p>
+        <ul class="lista menu">
+          <li><div class="item item--fijo">
+            <span class="item__icono">🔢</span>
+            <span class="item__texto"><span class="item__titulo">Bloqueo con PIN</span><span class="item__sub" id="seg-pin-estado">Desactivado</span></span>
+            <button class="btn btn--peque" id="seg-pin-btn">Activar</button>
+          </div></li>
+          <li id="seg-huella-fila"><div class="item item--fijo">
+            <span class="item__icono">👆</span>
+            <span class="item__texto"><span class="item__titulo">Desbloquear con huella</span><span class="item__sub" id="seg-huella-estado">Primero activa el PIN</span></span>
+            <label class="interruptor"><input type="checkbox" id="seg-huella"><span></span></label>
+          </div></li>
+          <li><div class="item item--fijo">
+            <span class="item__icono">⏱️</span>
+            <span class="item__texto"><span class="item__titulo">Autobloqueo</span><span class="item__sub">Tras este tiempo en segundo plano</span></span>
+            <select id="seg-minutos" class="select-peque">
+              <option value="0">Siempre</option>
+              <option value="1">1 minuto</option>
+              <option value="5">5 minutos</option>
+              <option value="15">15 minutos</option>
+              <option value="60">1 hora</option>
+            </select>
+          </div></li>
+          <li><div class="item item--fijo">
+            <span class="item__icono">🔐</span>
+            <span class="item__texto"><span class="item__titulo">Bloquear ahora</span></span>
+            <button class="btn btn--peque" id="seg-bloquear-ya">Bloquear</button>
+          </div></li>
+        </ul>
+        <button class="btn btn--peligro" id="seg-quitar" hidden style="margin-top:12px">Quitar el bloqueo de este dispositivo</button>
+        <p class="ayuda">Si olvidas el PIN, en la pantalla de bloqueo pulsa "¿Has olvidado el PIN?": se cierra la sesión y entras con tu email y contraseña.</p>
+      </section>
+
       <!-- Fijos mensuales -->
       <section id="tab-fijos" class="tab" hidden>
         <div class="tarjetas">
@@ -200,8 +317,9 @@
     <nav class="bottom-nav">
       <button class="bottom-nav__item activo" data-tab="resumen"><span>📊</span>Mes</button>
       <button class="bottom-nav__item" data-tab="calendario"><span>📅</span>Calendario</button>
-      <button class="bottom-nav__item" data-tab="fijos"><span>🔁</span>Fijos</button>
-      <button class="bottom-nav__item" data-tab="categorias"><span>🏷️</span>Categorías</button>
+      <button class="bottom-nav__item" data-tab="graficos"><span>📈</span>Gráficos</button>
+      <button class="bottom-nav__item" data-tab="objetivos"><span>🎯</span>Objetivos</button>
+      <button class="bottom-nav__item" data-tab="mas"><span>☰</span>Más</button>
     </nav>
   </div>
 
@@ -322,6 +440,102 @@
       <p class="ayuda" id="cat-aviso" hidden>Si la eliminas, sus movimientos quedarán como "Sin categoría".</p>
       <div class="modal__acciones">
         <button type="button" class="btn btn--peligro" id="cat-eliminar" hidden>Eliminar</button>
+        <span class="espaciador"></span>
+        <button type="button" class="btn" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn btn--primary">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+
+  <!-- ============ MODAL OBJETIVO ============ -->
+  <dialog id="dlg-objetivo" class="modal">
+    <form method="dialog" id="form-objetivo" class="modal__form">
+      <h2 id="obj-titulo">Nuevo objetivo</h2>
+      <div class="segmentado segmentado--3">
+        <label><input type="radio" name="tipo" value="limite" checked><span>🚦 Límite</span></label>
+        <label><input type="radio" name="tipo" value="ahorro"><span>💰 Ahorro</span></label>
+        <label><input type="radio" name="tipo" value="hucha"><span>🐷 Hucha</span></label>
+      </div>
+      <div class="fila fila--icono2">
+        <label>Icono
+          <input type="text" name="icono" maxlength="4" class="input-icono" required>
+        </label>
+        <label>Nombre
+          <input type="text" name="nombre" maxlength="60" required autocomplete="off">
+        </label>
+      </div>
+      <label id="obj-importe-label">Máximo a gastar (€)
+        <input type="text" name="importe" inputmode="decimal" placeholder="0,00" required autocomplete="off">
+      </label>
+      <label id="obj-periodo">Periodo
+        <select name="periodo">
+          <option value="semana">Cada semana</option>
+          <option value="mes" selected>Cada mes</option>
+          <option value="trimestre">Cada trimestre</option>
+          <option value="anio">Cada año</option>
+          <option value="rango">Entre dos fechas</option>
+        </select>
+      </label>
+      <div class="fila" id="obj-fechas" hidden>
+        <label id="obj-inicio">Desde
+          <input type="date" name="fecha_inicio">
+        </label>
+        <label id="obj-fin-label">Hasta
+          <input type="date" name="fecha_fin">
+        </label>
+      </div>
+      <label id="obj-categoria">¿Qué gastos cuentan?
+        <select name="categoria_id"></select>
+      </label>
+      <label class="check" id="obj-sin-fijos">
+        <input type="checkbox" name="solo_variables"> No contar los gastos fijos (alquiler, suscripciones…)
+      </label>
+      <label class="check" id="obj-activo">
+        <input type="checkbox" name="activo" checked> Activo
+      </label>
+      <div class="modal__acciones">
+        <button type="button" class="btn btn--peligro" id="obj-eliminar" hidden>Eliminar</button>
+        <span class="espaciador"></span>
+        <button type="button" class="btn" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn btn--primary">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ============ MODAL APORTACIÓN ============ -->
+  <dialog id="dlg-aportacion" class="modal">
+    <form method="dialog" id="form-aportacion" class="modal__form">
+      <h2 id="ap-titulo">Aportar</h2>
+      <label>Importe (€)
+        <input type="text" name="importe" inputmode="decimal" placeholder="0,00" required autocomplete="off" class="input-importe">
+      </label>
+      <label>Fecha
+        <input type="date" name="fecha" required>
+      </label>
+      <label>Nota
+        <input type="text" name="nota" maxlength="80" placeholder="Opcional" autocomplete="off">
+      </label>
+      <div class="modal__acciones">
+        <span class="espaciador"></span>
+        <button type="button" class="btn" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn btn--primary">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ============ MODAL PIN ============ -->
+  <dialog id="dlg-pin" class="modal">
+    <form method="dialog" id="form-pin" class="modal__form">
+      <h2>Elige un PIN</h2>
+      <p class="ayuda" style="margin:0">De 4 a 6 números. Se guarda cifrado solo en este dispositivo.</p>
+      <label>PIN
+        <input type="password" name="pin" inputmode="numeric" pattern="[0-9]{4,6}" minlength="4" maxlength="6" required autocomplete="new-password" class="input-pin">
+      </label>
+      <label>Repite el PIN
+        <input type="password" name="pin2" inputmode="numeric" pattern="[0-9]{4,6}" minlength="4" maxlength="6" required autocomplete="new-password" class="input-pin">
+      </label>
+      <div class="modal__acciones">
         <span class="espaciador"></span>
         <button type="button" class="btn" data-cerrar>Cancelar</button>
         <button type="submit" class="btn btn--primary">Guardar</button>
